@@ -16,7 +16,7 @@ typedef void (*interruptHandler)(registers* regs);
 
 static int intNum;
 
-static interruptHandler table[256];
+static interruptHandler table[256] = {0};
 
 #define     register(X)         table[0x##X] = &int##X
 
@@ -37,6 +37,7 @@ static const char* exceptionTable[] = { "Divide by zero", "Debugger", "NMI", "Br
 static void int20(registers* regs);
 static void int21(registers* regs);
 static void int80(registers* regs);
+static void int2E(registers* regs);
 static void exceptionHandler(registers* regs);
 void interruptDispatcher(registers regs);
 
@@ -60,6 +61,10 @@ void int21(registers* regs ) {
     readScanCode();
 }
 
+void int2E(registers* args) {
+    writeScreen("DISK", 4);
+}
+
 /**
  * Register interrupts in the handler table.
  *
@@ -71,6 +76,7 @@ void setInterruptHandlerTable(void) {
     }
     register(20);
     register(21);
+    register(2E);
 
     register(80);
 }
@@ -90,7 +96,7 @@ void interruptDispatcher(registers regs) {
     // We need access to this number some other way
     // And since the kernel itself is not preemptive, storing it like this is safe.
     intNum = regs.intNum;
-    (*table[regs.intNum])(&regs);
+    (*table[intNum])(&regs);
 
     scheduler_do();
     signalPIC();

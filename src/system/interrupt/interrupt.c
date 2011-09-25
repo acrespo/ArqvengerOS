@@ -106,6 +106,7 @@ void _int1FHandler(void);
 
 void _int20Handler(void);
 void _int21Handler(void);
+void _int2EHandler(void);
 void _int80Handler(void);
 
 
@@ -126,6 +127,7 @@ void setupIDT(void) {
     setIdtEntry(idt, 0x80, 0x08, (dword)&_int80Handler, ACS_INT);
     setIdtEntry(idt, 0x20, 0x08, (dword)&_int20Handler, ACS_INT);
     setIdtEntry(idt, 0x21, 0x08, (dword)&_int21Handler, ACS_INT);
+    setIdtEntry(idt, 0x2E, 0x08, (dword)&_int2EHandler, ACS_INT);
 
     setIdtEntry(idt, 0x00, 0x08, (dword)&_int00Handler, ACS_INT);
     setIdtEntry(idt, 0x01, 0x08, (dword)&_int01Handler, ACS_INT);
@@ -168,8 +170,8 @@ void setupIDT(void) {
     setInterruptHandlerTable();
 
     /* Enable the interrupts we need in the PIC. */
-    outB(0x21,0xFC);
-    outB(0xA1,0xFF);
+    outB(0x21,0xF8);
+    outB(0xA1,0x5F);
 
     // Enabling the interrupts again.
     _sti();
