@@ -2,6 +2,7 @@
 #include "type.h"
 #include "system/io.h"
 #include "drivers/pci.h"
+#include "system/mm.h"
 
 struct DriveInfo {
     size_t len;
@@ -27,6 +28,10 @@ struct DriveInfo {
 #define COMMAND_PORT PORT(7)
 #define STATUS_PORT COMMAND_PORT
 
+#define DMA_STATUS (bar4 + 0x2)
+#define DMA_CMD (bar4)
+#define DMA_PRDT (bar4 + 0x4)
+
 #define ERR(status) (status & 0x1)
 #define DRQ(status) (status & (0x1 << 3))
 #define SRV(status) (status & (0x1 << 4))
@@ -37,11 +42,20 @@ struct DriveInfo {
 #define CONTROL_REGISTER 0x3F6
 
 #define MASTER 0xA0
-#define IDENTIFY 0xEC
 
-unsigned long long sectors = 0L;
+#define LAST_ENTRY 0x8000u
 
-unsigned int bar4;
+struct PRD {
+    unsigned int buffer;
+    unsigned short bytes;
+    unsigned short last;
+};
+
+static unsigned long long sectors = 0L;
+
+static unsigned int bar4;
+
+static struct PRD* entry;
 
 void ata_init(struct multiboot_info* info) {
 
@@ -57,8 +71,9 @@ void ata_init(struct multiboot_info* info) {
                 }
             }
 
+            outB(DRIVE_PORT, MASTER);
             if (inB(DRIVE_PORT) != MASTER) {
-                //panic();
+                panic();
             }
 
             struct PCIDevice device;
@@ -67,14 +82,31 @@ void ata_init(struct multiboot_info* info) {
             }
 
             bar4 = pci_read_config(&device, 0x20) & (~0x3);
-            printf("BAR#4 %u\n", bar4);
-            printf("At BAR#4 %u\n", inB(bar4));
-            printf("At BAR#4 + 2 %u\n", inB(bar4 + 0x2));
-            printf("At BAR#4 + 4 %u\n", inD(bar4 + 0x4));
-            outB(bar4, 0x1);
+
+            entry = allocPage();
+
+            entry->last = LAST_ENTRY;
+            entry->bytes = PAGE_SIZE;
+
+            outD(DMA_PRDT, (unsigned int) entry);
         }
     }
 
     printf("Drive with sectors: %d\n", sectors);
+}
+
+void test_run(void) {
+    int* buffer = allocPage();
+    buffer[0] = 0xFFFFFFFF;
+    entry->buffer = (unsigned int) buffer;
+
+    outB(DMA_CMD, 0x1 | (0x1 << 8));
+    outB(DRIVE_PORT, MASTER);
+    outB(SECTOR_COUNT_PORT, 0x8);
+    outB(LBA_LOW_PORT, 0x0);
+    outB(LBA_MID_PORT, 0x0);
+    outB(LBA_HIGH_PORT, 0x0);
+
+    outB(COMMAND_PORT, 0xC8);
 }
 

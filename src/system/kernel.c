@@ -43,10 +43,13 @@ void kmain(struct multiboot_info* info, unsigned int magic) {
     initMemoryMap(info);
     ata_init(info);
 
-    disableInterrupts();
-    struct Process* idleProcess = process_table_new(idle, NULL, NULL);
-    struct Process* shellProcess = process_table_new(shell, NULL, idleProcess);
-    enableInterrupts();
+    test_run();
+
+    //disableInterrupts();
+    //struct Process* idleProcess = process_table_new(idle, NULL, NULL);
+    //struct Process* shellProcess = process_table_new(shell, NULL, idleProcess);
+    //enableInterrupts();
+
 
     while (1) {}
 }
