@@ -43,7 +43,6 @@ unsigned long long sectors = 0L;
 
 unsigned int bar4;
 
-
 void ata_init(struct multiboot_info* info) {
 
     if (info->flags & (0x1 << 7)) {
